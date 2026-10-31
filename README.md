@@ -26,6 +26,10 @@
 退出 Codex小灯 ⊠    ← 配「方框叉」图标（V1.4，与 WB小灯 同款）
 ```
 
+## 姊妹项目
+
+- [wblight](https://github.com/GGV-007/wblight)：同款菜单栏状态灯，盯 WorkBuddy
+
 ## 目录
 
 - `源码/Codex小灯.m`：单文件 Cocoa 源码（975 行），本包核心
