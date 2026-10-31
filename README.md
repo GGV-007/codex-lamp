@@ -30,15 +30,18 @@
 退出 Codex小灯 ⊠    ← 配「方框叉」图标（V1.4，与 WB小灯 同款）
 ```
 
-## 姊妹项目
+## 安装
 
-- [wblight](https://github.com/GGV-007/wblight)：同款菜单栏状态灯，盯 WorkBuddy
+1. 从 [Releases](../../releases) 下载 zip，解压，把 `Codex小灯.app` 拖进「应用程序」
+2. **首次打开**：未做 Apple 公证，先右键 → 打开（详见包内 `首次打开必读.txt`）
+3. 运行依赖：本机已使用过 Codex（有 `~/.codex/` 目录）；查用量需能访问 chatgpt.com
 
-## 目录
+## 运行依赖
 
-- `源码/Codex小灯.m`：单文件 Cocoa 源码（1215 行），本包核心
-- `源码/Resources/`：早期头像帧素材，当前 C 字母版暂不依赖
-- `开发文档-Codex小灯.md`：完整开发文档（原理、信号地图、实测记录、内嵌源码）
+- 读取本机 `~/.codex/sessions/` 会话日志判断忙闲
+- 读取 `~/.codex/auth.json`（只读，不刷新 token）调 ChatGPT 用量接口显示剩余额度
+- 需要能访问 `chatgpt.com` 的网络环境
+- macOS 11+（菜单图标用 SF Symbols）
 
 ## 编译
 
@@ -46,10 +49,35 @@
 clang -fobjc-arc -framework Cocoa -framework Carbon -o Codex小灯 源码/Codex小灯.m
 ```
 
-macOS 自带 clang 即可，无需第三方依赖。要打成 .app 再加一个 Info.plist（LSUIElement=true）。
+macOS 自带 clang 即可，零第三方依赖。通用二进制（arm64 + x86_64）。
 
-## 运行依赖
+> 版本号唯一来源：源码顶部 `static NSString * const kAppVersion`，菜单「关于 Codex小灯 → 版本 x.y」从这里读。
+> 升版时改这一处，同时用 `plutil` 同步 `Info.plist` 的 `CFBundleShortVersionString` / `CFBundleVersion`；
+> 以 `CODEX_LIGHT_DEBUG=1` 启动时会自动比对，不一致打印 `⚠️ 版本不一致，请同步！`。
 
-- 读取本机 `~/.codex/sessions/` 会话日志判断忙闲
-- 读取 `~/.codex/auth.json`（只读，不刷新 token）调 ChatGPT 用量接口显示剩余额度
-- 需要能访问 `chatgpt.com` 的网络环境
+## 版本历史
+
+| 版本 | 日期 | 改动 |
+|---|---|---|
+| V1.6 | 2026-11-01 | 菜单加「关于 Codex小灯」区块（版本 / 项目主页 / 问题反馈）；「本周剩余」下加「充值卡」行（张数绿色加粗 + 到期时间，北京时区）；非按钮行文字统一改次级灰 |
+| V1.5 | 2026-10-28 | 真修「换完提示音重启会丢」（Bundle ID 与 NSUserDefaults suite 同名，macOS 忽略该 suite → 偏好从不落盘）|
+| V1.4 | 2026-10-27 | 菜单「重启 / 退出」加 SF Symbols 图标 |
+| V1.3 | 2026-10-27 | 顺手修提示音偏好不落盘 |
+| V1.2 | 2026-10-26 | 面板改版：第一行整行绿字加大，删除「最近活动」行 |
+| V1.1 及更早 | — | 基础灯语、Codex 真实用量（5 小时 / 本周剩余）|
+
+## 姊妹项目
+
+- [wblight](https://github.com/GGV-007/wblight)：同款菜单栏状态灯，盯 WorkBuddy
+
+## 项目链接
+
+- 项目主页：<https://github.com/GGV-007/codex-lamp>
+- 问题反馈：<https://github.com/GGV-007/codex-lamp/issues>
+
+## 目录
+
+- `源码/Codex小灯.m`：单文件 Cocoa 源码（1215 行），本包核心
+- `源码/Resources/`：早期头像帧素材，当前 C 字母版暂不依赖
+- `开发文档-Codex小灯.md`：完整开发文档（原理、信号地图、实测记录、内嵌源码）
+- `发布版/`：打包产物（`Codex小灯.app` + 开发文档 + `_历史版本归档/`）
