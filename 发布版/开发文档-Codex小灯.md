@@ -3,8 +3,9 @@
 > 菜单栏小灯：看着 Codex 干活。
 > 与「WB小灯」同一套灯语规则，读的是 Codex 的会话日志。
 >
-> **版本**：**V1.5**（2026-10-28）—— **真修「换完提示音重启会丢」**：app 的 Bundle ID 叫 `local.codex.light`，代码却用同名 `initWithSuiteName:` 建 suite，macOS 直接忽略（"own bundle identifier as suite name does not work"），偏好只在进程内存里、从不落盘；改用 `standardUserDefaults`（与 WB小灯 V2.6 同源同病同修，已在 .app 里实测验证）。｜V1.4（2026-10-27）—— 菜单「重启 / 退出」**配上图标**：重启=循环箭头（arrow.triangle.2.circlepath）、退出=方框叉（xmark.square），SF Symbols 13pt Medium，与 WB小灯 同款同尺寸。｜V1.3（2026-10-27）—— ①第二行整行换成「**工作中 · 已忙 X 分 X 秒**」（文字白、两个数字绿，复用的就是驱动 C 灯闪的那个忙碌时长参数）；原来「最近活动：X小时X分X秒前」这一行**彻底删除**（前台菜单、后台计算都不再保留）；②**修提示音偏好不落盘**（换完音重启会丢，详见 1.1）。｜V1.2（2026-10-27）：「最近活动」行状态词去掉。｜V1.1（2026-10-27）：菜单宽度统一 314、状态词去闪烁。｜V1.0：当前任务第一行绿字 15 半粗。｜V0.9：分隔线。｜V0.8：菜单 0% 黄呼吸。｜V0.6：真实用量。｜**文档整理**：W｜2026-10-12
-> **源码**：`源码/Codex小灯.m`（单文件 975 行）｜**产物**：`发布版/Codex小灯.app`（版本 1.5）
+> **版本**：**V1.6**（2026-11-01）—— ①**菜单加「关于 Codex小灯」区块**（版本 + 项目主页 + 问题反馈，交接单 JJ-2026-1101-01）；②**菜单「本周剩余」下面加一行充值卡**：`充值卡 **1** 张 · 到期 11月7日 06:35（北京）`（张数绿色加粗；只给张数 + 最近那张的到期时间，不展开明细）。数据源是新接口 `GET /backend-api/wham/rate-limit-reset-credits`（注意是**连字符**，下划线那个是 404），返回 `credits[].status/expires_at` + `available_count`；只统计 `status=available` 的卡、日期取最早到期的那张、按本机时区显示。10 分钟查一次（不跟 60 秒的用量刷新一起刷）。｜**视觉分层**（刚哥定）：只有**可点按钮**用亮白 + 黑体粗（Tibo 项），其余只读信息行（闲置中 / 5小时剩余 / 本周剩余 / 充值卡）文字统一**次级灰**，数字仍绿（5小时 0% 时黄呼吸）｜菜单另加「**去Tibo 的 X 账号看看**」（**只有 Tibo 四个字母黑体粗**、其余常规体，单独放两个分隔线中间）→ 一键跳 `x.com/thsottiaux`——Codex 额度重置消息的第一现场（OpenAI 无重置状态页，都是 Codex&ChatGPT 负责人 Tibo 在 X 先发）。｜**V1.5**（2026-10-28）—— **真修「换完提示音重启会丢」**：app 的 Bundle ID 叫 `local.codex.light`，代码却用同名 `initWithSuiteName:` 建 suite，macOS 直接忽略（"own bundle identifier as suite name does not work"），偏好只在进程内存里、从不落盘；改用 `standardUserDefaults`（与 WB小灯 V2.6 同源同病同修，已在 .app 里实测验证）。｜V1.4（2026-10-27）—— 菜单「重启 / 退出」**配上图标**：重启=循环箭头（arrow.triangle.2.circlepath）、退出=方框叉（xmark.square），SF Symbols 13pt Medium，与 WB小灯 同款同尺寸。｜V1.3（2026-10-27）—— ①第二行整行换成「**工作中 · 已忙 X 分 X 秒**」（文字白、两个数字绿，复用的就是驱动 C 灯闪的那个忙碌时长参数）；原来「最近活动：X小时X分X秒前」这一行**彻底删除**（前台菜单、后台计算都不再保留）；②**修提示音偏好不落盘**（换完音重启会丢，详见 1.1）。｜V1.2（2026-10-27）：「最近活动」行状态词去掉。｜V1.1（2026-10-27）：菜单宽度统一 314、状态词去闪烁。｜V1.0：当前任务第一行绿字 15 半粗。｜V0.9：分隔线。｜V0.8：菜单 0% 黄呼吸。｜V0.6：真实用量。｜**文档整理**：W｜2026-10-12
+> **源码**：`源码/Codex小灯.m`（单文件 1215 行）｜**产物**：`发布版/Codex小灯.app`（版本 1.6）
+> **开源**：https://github.com/GGV-007/codex-lamp ｜**反馈**：https://github.com/GGV-007/codex-lamp/issues
 > **作者**：Codex（原始实现）｜**本版文档**：W 实测审查后编写，含三项待修问题
 
 ---
@@ -51,14 +52,28 @@
 ────────────────────────
 5小时剩余：91% · 20 分钟后重置   ← V0.6：真实用量；V0.8：数字为 0% 时黄色呼吸（与菜单栏 C 同频同相）
 本周剩余：96% · 4 天 17 小时后重置
+充值卡 1 张 · 到期 11月7日 06:35（北京） ← V1.6：额度重置卡（张数绿色加粗；接口 status=available）
+────────────────────────
+去Tibo 的 X 账号看看              ← V1.6：跳 @thsottiaux（额度重置第一现场），黑体粗 + 亮白＝「可点」
 ────────────────────────
 测试网速                          ← V0.6 追加：默认浏览器打开 fast.com 测速（刚哥定：不显示网址）
 打开 Codex
 更换提示音 ▸                      ← 子菜单：开关 + 16 个音源（点音名即试听并设为当前）
+关于 Codex小灯 ▸                  ← V1.6：版本 1.6 / 打开项目主页 ↗ / 问题反馈 ↗
 ────────────────────────
 重启 Codex 小灯 🔄                ← V0.5 新增：拉起新实例后退出旧实例；V1.4 配「循环箭头」图标
 退出 Codex小灯 ⊠                  ← V1.4 配「方框叉」图标（两行图标同 13pt，与 WB 同款）
 ```
+
+> **V1.6 追加（交接单 JJ-2026-1101-01，刚哥 2026-11-01 拍板）**：两个小灯已开源到 GitHub，
+> 但应用内**没有任何署名与出处**。故在菜单「更换提示音」下方、重启项上方加「**关于 Codex小灯**」子菜单：
+> `版本 1.6`（纯显示、`enabled=NO`，灰色＝不可点）＋ `打开项目主页 ↗` ＋ `问题反馈 ↗`
+> （两个外链走 `[[NSWorkspace sharedWorkspace] openURL:]`，系统默认浏览器打开）。
+> 目的是让「用户看到新版本 → 点链接去 Releases 下载」形成升级闭环。
+> 版本号统一收进源码顶部常量 **`kAppVersion`**（与 `kProjectURL` / `kIssuesURL` 同处），
+> 「关于」菜单读它；`Info.plist` 的 `CFBundleShortVersionString` 需与之保持一致，
+> 启动时 `CODEX_LIGHT_DEBUG=1` 会比对并打印告警（防「改了源码忘了升 plist」）。
+> 不放任何个人邮箱或联系方式。
 
 > **V0.4 变更（刚哥指定）**：菜单只保留以上 5 项。删掉了「动作」「依据」两行状态、
 > 「最近 Codex 项目」列表和「演示忙碌 30 秒」演示模式。「退出」条目名同步改成 app 现名。
@@ -87,6 +102,112 @@
 > 在「闲 → 忙」的边沿记下当前时间戳，「忙 → 闲」的那一刻清零；`renderDetailLine` 里现算 `now - busySince`；
 > 闲着时这一行直接写「闲置中」（白字，不参与染色）。连带删除：原来的 `detailAgeText` 拼接、
 > 菜单占位文案改成「闲置中」、`detailField.textColor` 默认 `labelColor`。前后台都不再留「最近活动」这四个字。
+
+### 1.5 V1.6：菜单加「关于 Codex小灯」区块（2026-11-01，交接单 JJ-2026-1101-01）
+
+需求出处：两个小灯已开源到 GitHub，但**应用内无任何署名与出处** → 用户不知道去哪看新版、去哪提问题。
+放在「更换提示音」下方、重启项上方。
+
+```
+关于 Codex小灯 ▸
+   版本 1.6                ← 纯显示，enabled=NO（灰＝不可点，与刚哥定的视觉分层一致）
+   打开项目主页 ↗          → https://github.com/GGV-007/codex-lamp
+   问题反馈 ↗              → https://github.com/GGV-007/codex-lamp/issues
+```
+
+| 项 | 做法 |
+|----|------|
+| 版本常量 | 源码顶部 `static NSString * const kAppVersion = @"1.6";`，与 `kProjectURL` / `kIssuesURL` 同处一个区块；「关于」菜单直接读它 |
+| plist 同步 | `Info.plist` 的 `CFBundleShortVersionString` 必须与 `kAppVersion` 一致；启动时在 `CODEX_LIGHT_DEBUG=1` 下比对，不一致打印 `⚠️ 版本不一致，请同步！` |
+| 打开链接 | `- (void)openAboutLink:(id)sender` 取 `representedObject`，用 `[[NSWorkspace sharedWorkspace] openURL:]` 走系统浏览器；没带 URL 直接 return（不瞎跳、不崩） |
+| 不动其他 | 忙闲判定、用量、充值卡、提示音、面板一行未改；仍保持单文件结构 |
+| 链接范围 | 只有仓库主页 + Issues 两个，不放邮箱、不放任何其他联系方式 |
+
+**验证（真跑，非纸面）**：`clang -fobjc-arc -framework Cocoa -framework Carbon` 编译 **0 错误**；菜单断言 harness（源码整体 include、真跑 `applicationDidFinishLaunching:`）**15 PASS / 0 FAIL**；真实 `.app` 内带 `CODEX_LIGHT_DEBUG=1` 启动实测 `[boot] Codex小灯 v1.6 (plist=1.6)`（一致、无告警）；两个外链真实 `openURL:` 均返回 **YES**。
+
+### 1.4 V1.6：菜单加「充值卡」行（2026-11-01 刚哥指定）
+
+需求原话：「本周剩余下面插一个目前剩余充值卡几张，并把充值卡的时间列出来，不要写过多，一行就行」。
+
+**接口（实测确认，不是网上抄的）**
+
+| 项 | 内容 |
+|----|------|
+| 端点 | `GET https://chatgpt.com/backend-api/wham/rate-limit-reset-credits` |
+| 头 | `Authorization: Bearer <access_token>` + `chatgpt-account-id`（与用量接口同源，凭据只读 `~/.codex/auth.json`，**不刷新 token**） |
+| 坑 | 端点是**连字符** `rate-limit-reset-credits`；写成下划线 `rate_limit_reset_credits` 返回 **404**。另：用量接口 `wham/usage` 里也有 `rate_limit_reset_credits.available_count`（只有张数，**没有到期日**） |
+| 返回 | `{ credits:[{id, status, granted_at, expires_at, title, ...}], available_count, total_earned_count }` |
+
+刚哥账号 2026-11-01 实测（脱敏）：
+
+```json
+"credits": [{ "status": "available",
+              "granted_at": "2026-10-07T22:35:42.453783Z",
+              "expires_at": "2026-11-06T22:35:42.453783Z",
+              "title": "Full reset (Weekly + 5 hr)" }],
+"available_count": 1
+```
+
+→ 菜单显示 **`充值卡 1 张 · 到期 11月7日 06:35（北京）`**（`expires_at` 是 UTC 且精确到秒；22:35 UTC = 北京次日 06:35，故按本机时区显示为 11月**7**日，并注明「北京」）。
+
+**显示规则（刻意的取舍）**
+
+- 只统计 `status == "available"` 的卡；已用掉/已过期的不算进张数
+- **张数绿色加粗**（刚哥 2026-11-01 追加指定），其余文字次级灰；加粗不改字号，免得撑宽菜单
+- **只给一个时间**：取最早到期的那张（快过期先用的决策依据），不逐张罗列——菜单就 314 宽；时间精确到分钟并标注「（北京）」
+- 没有到期日字段时只显示张数（`充值卡 3 张`），**不硬编日期**
+- 网络失败：首次失败显示「充值卡：暂不可用」（不编 0 张吓人）；已有数据后失败保留上次结果
+- 刷新频率 **10 分钟**（卡只在发卡/用掉时变，没必要跟 60 秒的用量一起刷）
+
+**源码（V1.6 新增，源码 599–685 行）**
+
+```objc
+- (void)applyResetCredits:(NSDictionary *)json {
+    NSArray *credits = [json[@"credits"] isKindOfClass:NSArray.class] ? json[@"credits"] : nil;
+    NSInteger count = [json[@"available_count"] integerValue];
+    // 只认手上还有效的（status=available），取最早到期的那张显示日期
+    NSDate *soonest = nil;
+    NSInteger availableInList = 0;
+    for (id obj in credits) {
+        if (![obj isKindOfClass:NSDictionary.class]) continue;
+        NSString *st = obj[@"status"];
+        if ([st isKindOfClass:NSString.class] && st.length && ![st isEqualToString:@"available"]) continue;
+        availableInList++;
+        NSDate *d = [self dateFromISO:obj[@"expires_at"]];
+        if (d && (!soonest || [d compare:soonest] == NSOrderedAscending)) soonest = d;
+    }
+    NSInteger shown = count > 0 ? count : availableInList;
+    if (shown <= 0) { [self setCardLine:@"充值卡 0 张"]; return; }
+    if (!soonest) { [self setCardLine:[NSString stringWithFormat:@"充值卡 %ld 张", (long)shown]]; return; }
+    NSDateFormatter *fmt = [NSDateFormatter new];
+    fmt.locale = [NSLocale localeWithLocaleIdentifier:@"en_US_POSIX"];
+    fmt.timeZone = [NSTimeZone localTimeZone];   // 到期日按本机时区显示（接口给的是 UTC）
+    fmt.dateFormat = @"M月d日";
+    [self setCardLine:[NSString stringWithFormat:@"充值卡 %ld 张 · 到期 %@",
+                       (long)shown, [fmt stringFromDate:soonest]]];
+}
+
+// ISO8601（可能带毫秒和 Z）→ NSDate；解析不了返回 nil，绝不硬编日期
+- (NSDate *)dateFromISO:(id)value {
+    if (![value isKindOfClass:NSString.class]) return nil;
+    NSString *s = (NSString *)value;
+    NSDateFormatter *f = [NSDateFormatter new];
+    f.locale = [NSLocale localeWithLocaleIdentifier:@"en_US_POSIX"];
+    f.timeZone = [NSTimeZone timeZoneWithAbbreviation:@"UTC"];
+    f.dateFormat = @"yyyy-MM-dd'T'HH:mm:ss";
+    if (s.length > 19) s = [s substringToIndex:19];   // 砍掉 .453783Z
+    return [f dateFromString:s];
+}
+```
+
+**踩坑（真 bug，测试逮到的）**：张数染色第一版写成「从『张』字往前吃连续数字」，但文案是 `充值卡 1 张`——数字和「张」之间**有空格**，扫描第一步就被空格挡住，结果整行没染上色（测试显示整行仍是 `secondaryLabelColor`）。修法：先从「张」往前**跳过空格**再吃数字。
+
+**验证（真跑，不是纸面）**：把 `Codex小灯.m` 整体 include 进 harness（`#define main` 让位），**调用真实 `applyResetCredits:` / `renderCardLine`** 跑 11 条用例 —— 真实账号数据、两张取最早、跳过已用掉、0 张、无到期日、脏数据、毫秒+Z 解析、非法输入返回 nil、**张数绿色+Bold+范围精确 `{4,1}`**、「0 张」也染绿、无数字文案不崩，**11 PASS / 0 FAIL**。再在真实 `.app` 里带 `CODEX_LIGHT_DEBUG=1` 跑，日志实测：
+
+```
+[usage]   5小时剩余：0% · 10 分钟后重置 | 本周剩余：24% · 4 天 23 小时后重置
+[credits] 充值卡 1 张 · 到期 11月7日
+```
 
 ### 1.3 V1.5：真修「换完提示音重启会丢」（2026-10-28，与 WB小灯 V2.6 同源）
 
@@ -300,6 +421,14 @@ static const NSTimeInterval kMinSoundGap = 2.0;   // 两声「叮」之间至少
 static const NSTimeInterval kBreathTick = 0.05;   // 黄色呼吸的步进（50ms 一帧，肉眼平滑）
 static const NSTimeInterval kBreathPeriod = 2.6;  // 呼吸一个明→暗→明周期（秒），"慢慢"呼吸
 
+// ---- 关于 / 开源署名（V1.6，交接单 JJ-2026-1101-01）----
+// 版本号唯一来源：菜单「关于 Codex小灯 → 版本 x.y」从这里读。
+// 升版时改这一处即可；同时记得 Info.plist 的 CFBundleShortVersionString / CFBundleVersion 要跟上
+// （启动时在 CODEX_LIGHT_DEBUG=1 下会比对，不一致会打印告警）。
+static NSString * const kAppVersion = @"1.6";
+static NSString * const kProjectURL = @"https://github.com/GGV-007/codex-lamp";
+static NSString * const kIssuesURL  = @"https://github.com/GGV-007/codex-lamp/issues";
+
 @interface AppDelegate : NSObject <NSApplicationDelegate, NSMenuDelegate>
 @property (strong) NSStatusItem *item;
 @property (strong) NSMenu *menu;
@@ -308,10 +437,14 @@ static const NSTimeInterval kBreathPeriod = 2.6;  // 呼吸一个明→暗→明
 // ---- Codex 真实用量（5小时窗口 / 本周）----
 @property (strong) NSTextField *usageFiveField;
 @property (strong) NSTextField *usageWeekField;
+@property (strong) NSTextField *usageCardField;   // V1.6：充值卡（额度重置卡）行
 @property (copy)   NSString *lastFiveLine;    // 最近一次菜单用量文案（呼吸帧重画用）
 @property (copy)   NSString *lastWeekLine;
+@property (copy)   NSString *lastCardLine;    // V1.6：充值卡行文案
 @property (strong) NSTimer *usageTimer;
+@property (strong) NSTimer *cardTimer;        // V1.6：充值卡查询定时器（10 分钟）
 @property (nonatomic) BOOL usageFetching;
+@property (nonatomic) BOOL cardFetching;      // V1.6
 @property (nonatomic) NSTimeInterval usageFetchedAt;
 @property (nonatomic) NSInteger fiveHourLeft;   // 5小时剩余百分比，-1 = 还没拿到数据
 @property (nonatomic) NSInteger weekLeft;       // 本周（5天）剩余百分比，-1 = 还没拿到数据
@@ -352,7 +485,15 @@ static const NSTimeInterval kBreathPeriod = 2.6;  // 呼吸一个明→暗→明
 - (void)setUsageLine:(NSString *)five week:(NSString *)week;
 - (void)renderUsageLines;   // 菜单用量两行重画（0% 时由呼吸帧驱动，黄字忽明忽暗）
 - (void)renderUsageField:(NSTextField *)field text:(NSString *)text baseColor:(NSColor *)baseColor breathing:(BOOL)breath;
+- (void)renderCardLine;   // V1.6：充值卡行（张数绿色加粗）
+- (void)openResetLink:(id)sender;   // V1.6：跳 X 上 Tibo（@thsottiaux）
+- (void)openAboutLink:(id)sender;   // V1.6：跳「关于」里的外链（项目主页 / Issues）
 - (void)renderDetailLine;
+// ---- 充值卡（rate-limit reset credits）V1.6 ----
+- (void)fetchResetCredits;
+- (void)applyResetCredits:(NSDictionary *)json;
+- (NSDate *)dateFromISO:(id)value;
+- (void)setCardLine:(NSString *)line;
 - (void)startUsageTimer;
 - (void)updateBreathTimer;   // 5小时额度=0 → 黄色呼吸开/关
 - (CGFloat)breathAlpha;      // 当前呼吸亮度 0.25~1.0
@@ -364,6 +505,15 @@ static const NSTimeInterval kBreathPeriod = 2.6;  // 呼吸一个明→暗→明
     [NSApp setActivationPolicy:NSApplicationActivationPolicyAccessory];
     self.blinkOn = YES;
     [self loadSoundPrefs];
+
+    // V1.6（交接单 JJ-2026-1101-01）：版本常量与 Info.plist 对不上时告警，
+    // 防止「改了源码忘了升 plist」或反过来——只在调试模式下打印，正常启动静默。
+    if (getenv("CODEX_LIGHT_DEBUG")) {
+        NSString *plistVer = [[NSBundle mainBundle]
+            objectForInfoDictionaryKey:@"CFBundleShortVersionString"];
+        NSLog(@"[boot] Codex小灯 v%@ (plist=%@)%@", kAppVersion, plistVer ?: @"(无)",
+              [plistVer isEqualToString:kAppVersion] ? @"" : @"  ⚠️ 版本不一致，请同步！");
+    }
 
     // NSStatusItemVariableLength(-1)：宽度随内容自适应，挂上百分比后不会截断
     self.item = [[NSStatusBar systemStatusBar] statusItemWithLength:-1.0];
@@ -393,10 +543,40 @@ static const NSTimeInterval kBreathPeriod = 2.6;  // 呼吸一个明→暗→明
     [self.menu addItem:[self fieldItemWithTitle:@"本周剩余：--" assign:^(NSTextField *field) {
         self.usageWeekField = field;
     }]];
+    // V1.6（2026-11-01 刚哥指定）：本周剩余下面加一行充值卡，只显示「几张 + 最近到期日」
+    [self.menu addItem:[self fieldItemWithTitle:@"充值卡：--" assign:^(NSTextField *field) {
+        self.usageCardField = field;
+    }]];
     self.usageFiveField.font = [NSFont systemFontOfSize:12 weight:NSFontWeightSemibold];
     self.usageWeekField.font = [NSFont systemFontOfSize:12];
-    self.usageFiveField.textColor = [NSColor labelColor];
+    self.usageCardField.font = [NSFont systemFontOfSize:12];
+    self.usageFiveField.textColor = [NSColor secondaryLabelColor];
     self.usageWeekField.textColor = [NSColor secondaryLabelColor];
+    self.usageCardField.textColor = [NSColor secondaryLabelColor];
+    [self.menu addItem:[NSMenuItem separatorItem]];
+
+    // ---- V1.6（2026-11-01 刚哥指定）：一键跳 Tibo 的 X，单独放两个分隔线中间 ----
+    // OpenAI 每次发 Codex 额度重置，都是 Codex&ChatGPT 负责人 Tibo（Thibault Sottiaux）
+    // 先在 X 上发帖（@thsottiaux），官方没有重置状态页，盯他最快。
+    NSMenuItem *tibo = [[NSMenuItem alloc] initWithTitle:@"去Tibo 的 X 账号看看"
+                                                  action:@selector(openResetLink:)
+                                           keyEquivalent:@""];
+    tibo.target = self;
+    tibo.representedObject = @"https://x.com/thsottiaux";
+    // 只有「Tibo」这个词黑体粗，其余常规（2026-11-01 刚哥指定：看好，就粗 Tibo 一个词）
+    {
+        NSString *tiboTitle = tibo.title;
+        NSMutableAttributedString *ta = [[NSMutableAttributedString alloc]
+            initWithString:tiboTitle
+                attributes:@{NSFontAttributeName: [NSFont menuFontOfSize:[NSFont systemFontSize]]}];
+        NSRange r = [tiboTitle rangeOfString:@"Tibo"];
+        if (r.location != NSNotFound)
+            [ta addAttribute:NSFontAttributeName
+                       value:[NSFont boldSystemFontOfSize:[NSFont systemFontSize]]
+                       range:r];
+        tibo.attributedTitle = ta;
+    }
+    [self.menu addItem:tibo];
     [self.menu addItem:[NSMenuItem separatorItem]];
 
     NSMenuItem *fastCom = [[NSMenuItem alloc] initWithTitle:@"测试网速" action:@selector(openFastCom:) keyEquivalent:@""];
@@ -446,6 +626,36 @@ static const NSTimeInterval kBreathPeriod = 2.6;  // 呼吸一个明→暗→明
     soundRoot.submenu = soundMenu;
     [self.menu addItem:soundRoot];
     [self refreshSoundMenuItems];
+
+    // ---- 关于（V1.6，交接单 JJ-2026-1101-01）：版本号 + 项目主页 + 问题反馈 ----
+    // 目的：应用内留出处。用户看到新版本 → 点链接去 Releases 下载 → 形成升级闭环。
+    NSMenuItem *aboutRoot = [[NSMenuItem alloc] initWithTitle:@"关于 Codex小灯" action:nil keyEquivalent:@""];
+    NSMenu *aboutMenu = [[NSMenu alloc] initWithTitle:@"关于 Codex小灯"];
+
+    // 版本行：纯显示，不可点（刚哥定的视觉分层——灰＝只读信息，亮白＝可点按钮）
+    NSMenuItem *verItem = [[NSMenuItem alloc]
+        initWithTitle:[NSString stringWithFormat:@"版本 %@", kAppVersion]
+               action:nil
+        keyEquivalent:@""];
+    verItem.enabled = NO;
+    [aboutMenu addItem:verItem];
+
+    NSMenuItem *homeItem = [[NSMenuItem alloc] initWithTitle:@"打开项目主页 ↗"
+                                                      action:@selector(openAboutLink:)
+                                               keyEquivalent:@""];
+    homeItem.target = self;
+    homeItem.representedObject = kProjectURL;
+    [aboutMenu addItem:homeItem];
+
+    NSMenuItem *issueItem = [[NSMenuItem alloc] initWithTitle:@"问题反馈 ↗"
+                                                       action:@selector(openAboutLink:)
+                                                keyEquivalent:@""];
+    issueItem.target = self;
+    issueItem.representedObject = kIssuesURL;
+    [aboutMenu addItem:issueItem];
+
+    aboutRoot.submenu = aboutMenu;
+    [self.menu addItem:aboutRoot];
 
     // 分隔线：把「重启 / 退出」这类 app 操作和上面的功能项隔开（2026-10-26 刚哥指定，与 WB小灯 一致）
     [self.menu addItem:[NSMenuItem separatorItem]];
@@ -863,6 +1073,108 @@ static const NSTimeInterval kBreathPeriod = 2.6;  // 呼吸一个明→暗→明
                                                      userInfo:nil
                                                       repeats:YES];
     self.usageTimer.tolerance = 5.0;
+    // V1.6：充值卡信息变化很慢（发卡/用掉才变），10 分钟查一次就够，不跟着 60 秒的用量刷新一起刷
+    [self fetchResetCredits];
+    self.cardTimer = [NSTimer scheduledTimerWithTimeInterval:600.0
+                                                      target:self
+                                                    selector:@selector(fetchResetCredits)
+                                                    userInfo:nil
+                                                     repeats:YES];
+    self.cardTimer.tolerance = 30.0;
+}
+
+// ============ V1.6：充值卡（rate-limit reset credits）============
+// 数据源：GET https://chatgpt.com/backend-api/wham/rate-limit-reset-credits
+// 返回：{ credits:[{status, expires_at, ...}], available_count, ... }
+// 只显示「几张 + 最近那张的到期日」，不展开明细（菜单宽度有限）
+- (void)fetchResetCredits {
+    if (self.cardFetching) return;
+    self.cardFetching = YES;
+
+    NSString *authPath = [NSHomeDirectory() stringByAppendingPathComponent:@".codex/auth.json"];
+    NSData *data = [NSData dataWithContentsOfFile:authPath];
+    NSDictionary *auth = data ? [NSJSONSerialization JSONObjectWithData:data options:0 error:nil] : nil;
+    NSDictionary *tokens = [auth[@"tokens"] isKindOfClass:NSDictionary.class] ? auth[@"tokens"] : nil;
+    NSString *token = tokens[@"access_token"];
+    NSString *account = tokens[@"account_id"];
+    if (!token.length) {
+        self.cardFetching = NO;
+        [self setCardLine:@"充值卡：未登录"];
+        return;
+    }
+
+    NSMutableURLRequest *req = [NSMutableURLRequest requestWithURL:
+        [NSURL URLWithString:@"https://chatgpt.com/backend-api/wham/rate-limit-reset-credits"]];
+    req.timeoutInterval = 15.0;
+    [req setValue:[@"Bearer " stringByAppendingString:token] forHTTPHeaderField:@"Authorization"];
+    if (account.length) [req setValue:account forHTTPHeaderField:@"chatgpt-account-id"];
+    [req setValue:@"codex-cli/0.163.0" forHTTPHeaderField:@"User-Agent"];
+    [req setValue:@"application/json" forHTTPHeaderField:@"Accept"];
+
+    __weak typeof(self) weakSelf = self;
+    NSURLSessionDataTask *task = [[NSURLSession sharedSession] dataTaskWithRequest:req
+        completionHandler:^(NSData *body, NSURLResponse *resp, NSError *err) {
+            NSInteger code = [resp isKindOfClass:NSHTTPURLResponse.class]
+                ? [(NSHTTPURLResponse *)resp statusCode] : 0;
+            NSDictionary *json = body.length
+                ? [NSJSONSerialization JSONObjectWithData:body options:0 error:nil] : nil;
+            dispatch_async(dispatch_get_main_queue(), ^{
+                __strong typeof(weakSelf) self = weakSelf;
+                if (!self) return;
+                self.cardFetching = NO;
+                if (code == 200 && [json isKindOfClass:NSDictionary.class]) {
+                    [self applyResetCredits:json];
+                } else if (!self.lastCardLine) {
+                    // 首次失败：如实说拿不到，不编「0 张」吓人
+                    [self setCardLine:@"充值卡：暂不可用"];
+                }
+                // 已有真实数据后网络失败：保留上次结果
+            });
+        }];
+    [task resume];
+}
+
+- (void)applyResetCredits:(NSDictionary *)json {
+    NSArray *credits = [json[@"credits"] isKindOfClass:NSArray.class] ? json[@"credits"] : nil;
+    NSInteger count = [json[@"available_count"] integerValue];
+    // 只认手上还有效的（status=available），取最早到期的那张显示日期
+    NSDate *soonest = nil;
+    NSInteger availableInList = 0;
+    for (id obj in credits) {
+        if (![obj isKindOfClass:NSDictionary.class]) continue;
+        NSString *st = obj[@"status"];
+        if ([st isKindOfClass:NSString.class] && st.length && ![st isEqualToString:@"available"]) continue;
+        availableInList++;
+        NSDate *d = [self dateFromISO:obj[@"expires_at"]];
+        if (d && (!soonest || [d compare:soonest] == NSOrderedAscending)) soonest = d;
+    }
+    NSInteger shown = count > 0 ? count : availableInList;
+    if (shown <= 0) { [self setCardLine:@"充值卡 0 张"]; return; }
+    if (!soonest) { [self setCardLine:[NSString stringWithFormat:@"充值卡 %ld 张", (long)shown]]; return; }
+    NSDateFormatter *fmt = [NSDateFormatter new];
+    fmt.locale = [NSLocale localeWithLocaleIdentifier:@"en_US_POSIX"];
+    fmt.timeZone = [NSTimeZone localTimeZone];   // 到期时间按本机时区显示（接口给的是 UTC）
+    fmt.dateFormat = @"M月d日 HH:mm";
+    [self setCardLine:[NSString stringWithFormat:@"充值卡 %ld 张 · 到期 %@（北京）",
+                       (long)shown, [fmt stringFromDate:soonest]]];
+}
+
+// ISO8601（可能带毫秒和 Z）→ NSDate；解析不了返回 nil，绝不硬编日期
+- (NSDate *)dateFromISO:(id)value {
+    if (![value isKindOfClass:NSString.class]) return nil;
+    NSString *s = (NSString *)value;
+    NSDateFormatter *f = [NSDateFormatter new];
+    f.locale = [NSLocale localeWithLocaleIdentifier:@"en_US_POSIX"];
+    f.timeZone = [NSTimeZone timeZoneWithAbbreviation:@"UTC"];
+    f.dateFormat = @"yyyy-MM-dd'T'HH:mm:ss";
+    if (s.length > 19) s = [s substringToIndex:19];   // 砍掉 .453783Z
+    return [f dateFromString:s];
+}
+
+- (void)setCardLine:(NSString *)line {
+    self.lastCardLine = line;
+    [self renderUsageLines];
+    if (getenv("CODEX_LIGHT_DEBUG")) NSLog(@"[credits] %@", line);
 }
 
 - (void)fetchUsage {
@@ -976,10 +1288,43 @@ static const NSTimeInterval kBreathPeriod = 2.6;  // 呼吸一个明→暗→明
 // 菜单用量两行：百分比染色；5 小时行在 0% 时黄色呼吸（与菜单栏 C 同一个呼吸帧）
 // 文案还没生成（启动头几秒）时直接跳过，不能拿 nil 建 attributed string
 - (void)renderUsageLines {
+    // 2026-11-01 刚哥定：非按钮行不用亮白，文字底色统一次级灰（数字仍绿 / 0% 黄呼吸）
     if (self.lastFiveLine) [self renderUsageField:self.usageFiveField text:self.lastFiveLine
-                                        baseColor:[NSColor labelColor] breathing:(self.fiveHourLeft == 0)];
+                                        baseColor:[NSColor secondaryLabelColor] breathing:(self.fiveHourLeft == 0)];
     if (self.lastWeekLine) [self renderUsageField:self.usageWeekField text:self.lastWeekLine
                                         baseColor:[NSColor secondaryLabelColor] breathing:NO];   // 本周不参与呼吸
+    // V1.6：充值卡行（文案里没有 %，走专门的渲染：张数染绿加粗）
+    if (self.lastCardLine) [self renderCardLine];
+}
+
+// V1.6（2026-11-01 刚哥指定）：充值卡行的张数数字绿色加粗，其余文字次级灰。
+// 这行没有「%」，所以不能用按 % 找数字的通用逻辑，改成按「张」字往前找数字。
+- (void)renderCardLine {
+    NSString *text = self.lastCardLine;
+    NSTextField *field = self.usageCardField;
+    if (!text || !field || !field.font) return;
+    NSMutableAttributedString *a = [[NSMutableAttributedString alloc] initWithString:text
+        attributes:@{NSFontAttributeName: field.font, NSForegroundColorAttributeName: [NSColor secondaryLabelColor]}];
+    NSRange zhang = [text rangeOfString:@"张"];
+    if (zhang.location != NSNotFound) {
+        // 文案是「充值卡 1 张」——数字和「张」之间有空格，先跳过空格再往前吃数字
+        NSUInteger end = zhang.location;
+        while (end > 0 && [text characterAtIndex:end - 1] == ' ') end--;
+        NSUInteger start = end;
+        while (start > 0) {
+            unichar c = [text characterAtIndex:start - 1];
+            if (c >= '0' && c <= '9') start--; else break;
+        }
+        if (start < end) {
+            NSRange numberRange = NSMakeRange(start, end - start);
+            [a addAttribute:NSForegroundColorAttributeName value:[NSColor systemGreenColor] range:numberRange];
+            // 加粗：与行内其余文字同字号（12）但用 Bold，不放大免得撑宽菜单
+            [a addAttribute:NSFontAttributeName
+                      value:[NSFont systemFontOfSize:field.font.pointSize weight:NSFontWeightBold]
+                      range:numberRange];
+        }
+    }
+    field.attributedStringValue = a;
 }
 
 // 只把百分比数字（含 %）染色：平时绿色；breathing=YES（5小时=0%）时黄色并按呼吸亮度忽明忽暗，
@@ -1057,7 +1402,7 @@ static const NSTimeInterval kBreathPeriod = 2.6;  // 呼吸一个明→暗→明
         self.detailField.attributedStringValue = [[NSAttributedString alloc]
             initWithString:@"闲置中"
                 attributes:@{NSFontAttributeName: self.detailField.font,
-                             NSForegroundColorAttributeName: [NSColor labelColor]}];
+                             NSForegroundColorAttributeName: [NSColor secondaryLabelColor]}];
         return;
     }
     NSTimeInterval secs = [NSDate date].timeIntervalSince1970 - self.busySince;
@@ -1066,7 +1411,7 @@ static const NSTimeInterval kBreathPeriod = 2.6;  // 呼吸一个明→暗→明
     NSMutableAttributedString *a = [[NSMutableAttributedString alloc]
         initWithString:[NSString stringWithFormat:@"%@%ld%@%ld%@", pre, mins, m1, ss, m2]
             attributes:@{NSFontAttributeName: self.detailField.font,
-                         NSForegroundColorAttributeName: [NSColor labelColor]}];
+                         NSForegroundColorAttributeName: [NSColor secondaryLabelColor]}];
     NSString *ms = [NSString stringWithFormat:@"%ld", mins], *xs = [NSString stringWithFormat:@"%ld", ss];
     [a addAttribute:NSForegroundColorAttributeName value:[NSColor systemGreenColor]
               range:NSMakeRange(pre.length, ms.length)];
@@ -1222,6 +1567,22 @@ static const NSTimeInterval kBreathPeriod = 2.6;  // 呼吸一个明→暗→明
     [[NSWorkspace sharedWorkspace] launchApplication:@"Codex"];
 }
 
+// V1.6：跳 X 上 Tibo（@thsottiaux）——Codex 额度重置消息的第一现场
+- (void)openResetLink:(id)sender {
+    id obj = [sender respondsToSelector:@selector(representedObject)] ? [sender representedObject] : nil;
+    NSString *u = [obj isKindOfClass:NSString.class] ? (NSString *)obj : nil;
+    if (!u.length) u = @"https://x.com/thsottiaux";   // 兜底：菜单项忘了带 URL 也跳对地方
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:u]];
+}
+
+// V1.6（交接单 JJ-2026-1101-01）：「关于」里的两个外链，系统默认浏览器打开
+- (void)openAboutLink:(id)sender {
+    id obj = [sender respondsToSelector:@selector(representedObject)] ? [sender representedObject] : nil;
+    NSString *u = [obj isKindOfClass:NSString.class] ? (NSString *)obj : nil;
+    if (!u.length) return;   // 没带 URL 就什么都不做，不瞎跳
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:u]];
+}
+
 - (void)quit:(id)sender {
     [NSApp terminate:nil];
 }
@@ -1265,7 +1626,6 @@ int main(int argc, const char * argv[]) {
     }
     return 0;
 }
-
 ```
 
 ---
