@@ -12,7 +12,7 @@ static const NSTimeInterval kBreathPeriod = 2.6;  // 呼吸一个明→暗→明
 // 版本号唯一来源：菜单「关于 Codex小灯 → 版本 x.y」从这里读。
 // 升版时改这一处即可；同时记得 Info.plist 的 CFBundleShortVersionString / CFBundleVersion 要跟上
 // （启动时在 CODEX_LIGHT_DEBUG=1 下会比对，不一致会打印告警）。
-static NSString * const kAppVersion = @"1.6";
+static NSString * const kAppVersion = @"1.7";
 static NSString * const kProjectURL = @"https://github.com/GGV-007/codex-lamp";
 static NSString * const kIssuesURL  = @"https://github.com/GGV-007/codex-lamp/issues";
 
@@ -48,6 +48,14 @@ static NSString * const kIssuesURL  = @"https://github.com/GGV-007/codex-lamp/is
 @property (copy) NSString *lastActionText;
 @property (copy) NSString *stateReason;
 @property (nonatomic) NSTimeInterval busySince;   // 本次变忙的时刻（V1.3：「已忙 X 分 X 秒」用）
+// ---- V1.7：忙碌时长三口径（本轮 / 今日累计 / 今日轮次）----
+// 背景：V1.3 只显示「本轮」时长，一闲置就归零，与「今天干了多少活」的直觉不符。
+// V1.7 补上跨轮累加的今日累计与轮次，落盘 standardUserDefaults，跨自然日自动清零。
+@property (nonatomic) double todayBusySecs;          // 今日累计忙碌秒数（跨轮累加）
+@property (nonatomic) NSInteger todayRuns;           // 今日完成的轮次（本轮 ≥3 秒才计数）
+@property (copy) NSString *busyDayKey;               // 今日累计归属的日期 yyyy-MM-dd
+@property (nonatomic) NSTimeInterval lastAccrualAt;  // 上次累加时刻（0=本轮尚未开始累加）
+@property (nonatomic) NSUInteger accrualTicks;       // 累加次数，用于节流写盘（每 30 秒一次）
 // ---- 干完活提示音 ----
 @property (nonatomic) BOOL soundEnabled;
 @property (copy) NSString *soundPath;
@@ -56,6 +64,10 @@ static NSString * const kIssuesURL  = @"https://github.com/GGV-007/codex-lamp/is
 @property (strong) NSMenuItem *soundToggleItem;
 @property (strong) NSMutableArray<NSMenuItem *> *soundChoiceItems;
 - (void)loadSoundPrefs;
+// V1.7：忙碌时长三口径
+- (void)loadBusyStats;
+- (void)saveBusyStats;
+- (void)rollBusyDayIfNeeded;
 - (void)saveSoundPrefs;
 - (NSString *)defaultSoundPath;
 - (NSArray<NSDictionary<NSString *, NSString *> *> *)availableSounds;
@@ -92,6 +104,7 @@ static NSString * const kIssuesURL  = @"https://github.com/GGV-007/codex-lamp/is
     [NSApp setActivationPolicy:NSApplicationActivationPolicyAccessory];
     self.blinkOn = YES;
     [self loadSoundPrefs];
+    [self loadBusyStats];   // V1.7：恢复今日累计忙碌时长与轮次（跨天自动归零）
 
     // V1.6（交接单 JJ-2026-1101-01）：版本常量与 Info.plist 对不上时告警，
     // 防止「改了源码忘了升 plist」或反过来——只在调试模式下打印，正常启动静默。
@@ -336,9 +349,28 @@ static NSString * const kIssuesURL  = @"https://github.com/GGV-007/codex-lamp/is
     if (!self.busy) {
         [self stopBlink];
         self.blinkOn = YES;
+        // V1.7：本轮结束且持续 ≥3 秒才计一轮（防状态抖动把轮次刷高）
+        if (wasBusy && self.busySince > 0 && (now - self.busySince) >= 3.0) {
+            self.todayRuns += 1;
+            [self saveBusyStats];
+        }
         self.busySince = 0;
     }
     if (wasBusy && !self.busy) [self playCompletionSound];   // 绿 → 红：活干完了，叮一声
+
+    // V1.7：今日累计——忙着的每一秒把真实经过的时间累加进去（跨轮不清零，跨自然日归零）
+    [self rollBusyDayIfNeeded];
+    if (self.busy) {
+        if (self.lastAccrualAt > 0 && now > self.lastAccrualAt) {
+            double dt = now - self.lastAccrualAt;
+            if (dt > 0 && dt < 120.0) self.todayBusySecs += dt;   // 间隔 >2 分钟＝休眠/卡顿，不补
+        }
+        self.lastAccrualAt = now;
+        self.accrualTicks += 1;
+        if (self.accrualTicks % 30 == 0) [self saveBusyStats];   // 每约 30 秒落一次盘
+    } else {
+        self.lastAccrualAt = 0;
+    }
     [self updateBreathTimer];   // 0% → 黄色呼吸开；回到有量 → 关（挂巡检，比只挂拉取那一刻稳）
     [self renderStatusTitle];
 
@@ -984,26 +1016,100 @@ static NSString * const kIssuesURL  = @"https://github.com/GGV-007/codex-lamp/is
 
 // 状态行：V1.3（2026-10-27 刚哥定）——参考 WB小灯 面板：忙时「工作中 · 已忙 X 分 X 秒」
 // （文字白、只有时长的两个数字绿），闲时「闲置中」；原「最近活动：…前」整行废弃（前后台都去掉）
-- (void)renderDetailLine {
-    if (!self.busy) {
-        self.detailField.attributedStringValue = [[NSAttributedString alloc]
-            initWithString:@"闲置中"
-                attributes:@{NSFontAttributeName: self.detailField.font,
-                             NSForegroundColorAttributeName: [NSColor secondaryLabelColor]}];
-        return;
+// ================= V1.7 忙碌时长三口径 =================
+
+static NSString *BusyDayKeyNow(void) {
+    static NSDateFormatter *df;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        df = [[NSDateFormatter alloc] init];
+        df.locale = [NSLocale localeWithLocaleIdentifier:@"en_US_POSIX"];
+        df.dateFormat = @"yyyy-MM-dd";
+    });
+    return [df stringFromDate:[NSDate date]];
+}
+
+- (void)loadBusyStats {
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    NSString *saved = [d stringForKey:@"BusyDayKey"];
+    NSString *today = BusyDayKeyNow();
+    if (saved.length && [saved isEqualToString:today]) {
+        self.todayBusySecs = [d doubleForKey:@"TodayBusySecs"];
+        self.todayRuns     = [d integerForKey:@"TodayRuns"];
+    } else {
+        self.todayBusySecs = 0.0;      // 换天或首次启动：今日从零开始
+        self.todayRuns     = 0;
     }
-    NSTimeInterval secs = [NSDate date].timeIntervalSince1970 - self.busySince;
-    long mins = (long)floor(secs / 60), ss = (long)fmod(secs, 60);
-    NSString *pre = @"工作中 · 已忙 ", *m1 = @" 分 ", *m2 = @" 秒";
+    self.busyDayKey = today;
+    if (!(saved.length && [saved isEqualToString:today])) [self saveBusyStats];   // 立刻把日期刷成今天，别留昨天的旧值
+}
+
+- (void)saveBusyStats {
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    [d setObject:(self.busyDayKey ?: BusyDayKeyNow()) forKey:@"BusyDayKey"];
+    [d setDouble:self.todayBusySecs forKey:@"TodayBusySecs"];
+    [d setInteger:self.todayRuns forKey:@"TodayRuns"];
+    [d synchronize];
+}
+
+- (void)applicationWillTerminate:(NSNotification *)note {
+    [self saveBusyStats];   // V1.7：退出前落盘，别丢掉最后不足 30 秒的部分
+}
+
+- (void)rollBusyDayIfNeeded {
+    NSString *today = BusyDayKeyNow();
+    if (self.busyDayKey.length && [today isEqualToString:self.busyDayKey]) return;
+    self.busyDayKey = today;
+    self.todayBusySecs = 0.0;
+    self.todayRuns = 0;
+    self.lastAccrualAt = 0;
+    [self saveBusyStats];
+}
+
+// V1.7：把秒数写成 12:34（不足 1 小时）或 1:02:34（超过 1 小时）
+static NSString *fmtDur(double secs) {
+    if (secs < 0) secs = 0;
+    long h = (long)floor(secs / 3600.0);
+    long m = (long)floor(fmod(secs, 3600.0) / 60.0);
+    long s = (long)floor(fmod(secs, 60.0));
+    if (h > 0) return [NSString stringWithFormat:@"%ld:%02ld:%02ld", h, m, s];
+    return [NSString stringWithFormat:@"%ld:%02ld", m, s];
+}
+
+// 状态行 V1.7：三口径——本轮 / 今日累计 / 今日轮次
+//   忙： 工作中 · 本轮 0:21 · 今日 2:13
+//   闲： 闲置中 · 今日 2:13 · 今天 8 轮
+// （文字沿用 V1.3 的灰色，只有数字染绿）
+- (void)renderDetailLine {
+    NSFont *f = self.detailField.font ?: [NSFont systemFontOfSize:13];
+    NSColor *dim = [NSColor secondaryLabelColor];
+    NSColor *green = [NSColor systemGreenColor];
+
+    NSString *today = fmtDur(self.todayBusySecs);
+    NSString *txt;
+    NSArray<NSString *> *nums;
+
+    if (!self.busy) {
+        NSString *runs = [NSString stringWithFormat:@"%ld", (long)self.todayRuns];
+        txt = [NSString stringWithFormat:@"闲置中 · 今日 %@ · 今天 %@ 轮", today, runs];
+        nums = @[today, runs];
+    } else {
+        NSTimeInterval secs = [NSDate date].timeIntervalSince1970 - self.busySince;
+        NSString *cur = fmtDur(secs);
+        txt = [NSString stringWithFormat:@"工作中 · 本轮 %@ · 今日 %@", cur, today];
+        nums = @[cur, today];
+    }
+
     NSMutableAttributedString *a = [[NSMutableAttributedString alloc]
-        initWithString:[NSString stringWithFormat:@"%@%ld%@%ld%@", pre, mins, m1, ss, m2]
-            attributes:@{NSFontAttributeName: self.detailField.font,
-                         NSForegroundColorAttributeName: [NSColor secondaryLabelColor]}];
-    NSString *ms = [NSString stringWithFormat:@"%ld", mins], *xs = [NSString stringWithFormat:@"%ld", ss];
-    [a addAttribute:NSForegroundColorAttributeName value:[NSColor systemGreenColor]
-              range:NSMakeRange(pre.length, ms.length)];
-    [a addAttribute:NSForegroundColorAttributeName value:[NSColor systemGreenColor]
-              range:NSMakeRange(pre.length + ms.length + m1.length, xs.length)];
+        initWithString:txt attributes:@{NSFontAttributeName: f,
+                                        NSForegroundColorAttributeName: dim}];
+    // 逐个数字染绿：第二个用反向查找，避免与第一个数字文本相同时落到同一处
+    NSRange r = [txt rangeOfString:nums[0]];
+    if (r.location != NSNotFound)
+        [a addAttribute:NSForegroundColorAttributeName value:green range:r];
+    r = [txt rangeOfString:nums[1] options:NSBackwardsSearch];
+    if (r.location != NSNotFound)
+        [a addAttribute:NSForegroundColorAttributeName value:green range:r];
     self.detailField.attributedStringValue = a;
 }
 

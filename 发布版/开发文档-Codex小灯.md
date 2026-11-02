@@ -3,8 +3,8 @@
 > 菜单栏小灯：看着 Codex 干活。
 > 与「WB小灯」同一套灯语规则，读的是 Codex 的会话日志。
 >
-> **版本**：**V1.6**（2026-11-01）—— ①**菜单加「关于 Codex小灯」区块**（版本 + 项目主页 + 问题反馈，交接单 JJ-2026-1101-01）；②**菜单「本周剩余」下面加一行充值卡**：`充值卡 **1** 张 · 到期 11月7日 06:35（北京）`（张数绿色加粗；只给张数 + 最近那张的到期时间，不展开明细）。数据源是新接口 `GET /backend-api/wham/rate-limit-reset-credits`（注意是**连字符**，下划线那个是 404），返回 `credits[].status/expires_at` + `available_count`；只统计 `status=available` 的卡、日期取最早到期的那张、按本机时区显示。10 分钟查一次（不跟 60 秒的用量刷新一起刷）。｜**视觉分层**（刚哥定）：只有**可点按钮**用亮白 + 黑体粗（Tibo 项），其余只读信息行（闲置中 / 5小时剩余 / 本周剩余 / 充值卡）文字统一**次级灰**，数字仍绿（5小时 0% 时黄呼吸）｜菜单另加「**去Tibo 的 X 账号看看**」（**只有 Tibo 四个字母黑体粗**、其余常规体，单独放两个分隔线中间）→ 一键跳 `x.com/thsottiaux`——Codex 额度重置消息的第一现场（OpenAI 无重置状态页，都是 Codex&ChatGPT 负责人 Tibo 在 X 先发）。｜**V1.5**（2026-10-28）—— **真修「换完提示音重启会丢」**：app 的 Bundle ID 叫 `local.codex.light`，代码却用同名 `initWithSuiteName:` 建 suite，macOS 直接忽略（"own bundle identifier as suite name does not work"），偏好只在进程内存里、从不落盘；改用 `standardUserDefaults`（与 WB小灯 V2.6 同源同病同修，已在 .app 里实测验证）。｜V1.4（2026-10-27）—— 菜单「重启 / 退出」**配上图标**：重启=循环箭头（arrow.triangle.2.circlepath）、退出=方框叉（xmark.square），SF Symbols 13pt Medium，与 WB小灯 同款同尺寸。｜V1.3（2026-10-27）—— ①第二行整行换成「**工作中 · 已忙 X 分 X 秒**」（文字白、两个数字绿，复用的就是驱动 C 灯闪的那个忙碌时长参数）；原来「最近活动：X小时X分X秒前」这一行**彻底删除**（前台菜单、后台计算都不再保留）；②**修提示音偏好不落盘**（换完音重启会丢，详见 1.1）。｜V1.2（2026-10-27）：「最近活动」行状态词去掉。｜V1.1（2026-10-27）：菜单宽度统一 314、状态词去闪烁。｜V1.0：当前任务第一行绿字 15 半粗。｜V0.9：分隔线。｜V0.8：菜单 0% 黄呼吸。｜V0.6：真实用量。｜**文档整理**：W｜2026-10-12
-> **源码**：`源码/Codex小灯.m`（单文件 1215 行）｜**产物**：`发布版/Codex小灯.app`（版本 1.6）
+> **版本**：**V1.7**（2026-11-02）—— ①**忙碌时长三口径**（刚哥指出「宣传与实际不自洽」）：状态行由「已忙 X 分 X 秒」改成「**工作中 · 本轮 0:21 · 今日 2:13**」，闲时显示「**闲置中 · 今日 2:13 · 今天 8 轮**」——原来只统计**本轮连续**忙碌、一闲置就归零，与「今天干了多少活」的直觉对不上；现在补上跨轮累加的**今日累计**与**今日轮次**，落 `standardUserDefaults`，跨自然日自动清零、退出前落盘。｜**V1.6**（2026-11-01）—— ①**菜单加「关于 Codex小灯」区块**（版本 + 项目主页 + 问题反馈，交接单 JJ-2026-1101-01）；②**菜单「本周剩余」下面加一行充值卡**：`充值卡 **1** 张 · 到期 11月7日 06:35（北京）`（张数绿色加粗；只给张数 + 最近那张的到期时间，不展开明细）。数据源是新接口 `GET /backend-api/wham/rate-limit-reset-credits`（注意是**连字符**，下划线那个是 404），返回 `credits[].status/expires_at` + `available_count`；只统计 `status=available` 的卡、日期取最早到期的那张、按本机时区显示。10 分钟查一次（不跟 60 秒的用量刷新一起刷）。｜**视觉分层**（刚哥定）：只有**可点按钮**用亮白 + 黑体粗（Tibo 项），其余只读信息行（闲置中 / 5小时剩余 / 本周剩余 / 充值卡）文字统一**次级灰**，数字仍绿（5小时 0% 时黄呼吸）｜菜单另加「**去Tibo 的 X 账号看看**」（**只有 Tibo 四个字母黑体粗**、其余常规体，单独放两个分隔线中间）→ 一键跳 `x.com/thsottiaux`——Codex 额度重置消息的第一现场（OpenAI 无重置状态页，都是 Codex&ChatGPT 负责人 Tibo 在 X 先发）。｜**V1.5**（2026-10-28）—— **真修「换完提示音重启会丢」**：app 的 Bundle ID 叫 `local.codex.light`，代码却用同名 `initWithSuiteName:` 建 suite，macOS 直接忽略（"own bundle identifier as suite name does not work"），偏好只在进程内存里、从不落盘；改用 `standardUserDefaults`（与 WB小灯 V2.6 同源同病同修，已在 .app 里实测验证）。｜V1.4（2026-10-27）—— 菜单「重启 / 退出」**配上图标**：重启=循环箭头（arrow.triangle.2.circlepath）、退出=方框叉（xmark.square），SF Symbols 13pt Medium，与 WB小灯 同款同尺寸。｜V1.3（2026-10-27）—— ①第二行整行换成「**工作中 · 已忙 X 分 X 秒**」（文字白、两个数字绿，复用的就是驱动 C 灯闪的那个忙碌时长参数）；原来「最近活动：X小时X分X秒前」这一行**彻底删除**（前台菜单、后台计算都不再保留）；②**修提示音偏好不落盘**（换完音重启会丢，详见 1.1）。｜V1.2（2026-10-27）：「最近活动」行状态词去掉。｜V1.1（2026-10-27）：菜单宽度统一 314、状态词去闪烁。｜V1.0：当前任务第一行绿字 15 半粗。｜V0.9：分隔线。｜V0.8：菜单 0% 黄呼吸。｜V0.6：真实用量。｜**文档整理**：W｜2026-10-12
+> **源码**：`源码/Codex小灯.m`（单文件 1321 行）｜**产物**：`发布版/Codex小灯.app`（版本 1.7）
 > **开源**：https://github.com/GGV-007/codex-lamp ｜**反馈**：https://github.com/GGV-007/codex-lamp/issues
 > **作者**：Codex（原始实现）｜**本版文档**：W 实测审查后编写，含三项待修问题
 
@@ -102,6 +102,43 @@
 > 在「闲 → 忙」的边沿记下当前时间戳，「忙 → 闲」的那一刻清零；`renderDetailLine` 里现算 `now - busySince`；
 > 闲着时这一行直接写「闲置中」（白字，不参与染色）。连带删除：原来的 `detailAgeText` 拼接、
 > 菜单占位文案改成「闲置中」、`detailField.textColor` 默认 `labelColor`。前后台都不再留「最近活动」这四个字。
+
+### 1.6 V1.7：忙碌时长三口径（本轮 / 今日累计 / 今日轮次）（2026-11-02 刚哥指出）
+
+**问题**：宣传口径说「它今天忙了几分几秒」，但 V1.3 的状态行 `工作中 · 已忙 X 分 X 秒` 统计的只是
+**本轮连续**忙碌时长——Codex 中间一停，`busySince` 就清零，用户看到的是「0 分 21 秒」。
+宣传与实际不自洽：装完会发现「我用了一下午，怎么只显示几十秒」。
+
+**做法**：补两个跨轮维度，与原来的本轮时长合并成一行三口径。
+
+| 口径 | 含义 | 计算 | 存储 |
+|------|------|------|------|
+| 本轮 | 当前这一趟活干了多久 | `now - busySince`（闲→忙时重置，与 V1.3 同） | 内存 |
+| 今日累计 | 今天所有轮次加起来忙了多久 | 忙着的每一秒累加 `now - lastAccrualAt`（间隔 >120 秒视为休眠/卡顿，不补） | `standardUserDefaults` |
+| 今日轮次 | 今天启动了几趟活 | 「忙→闲」边沿且本轮 ≥3 秒才 +1（防状态抖动把轮次刷高） | 同上 |
+
+**显示**（`renderDetailLine` 单一出口，文字次级灰、数字绿，沿用 V1.3 染色规则）
+
+```
+工作中 · 本轮 0:21 · 今日 2:13        ← 忙
+闲置中 · 今日 2:13 · 今天 8 轮        ← 闲（闲着也看得到今天干了多少）
+```
+
+时长格式 `fmtDur()`：不足 1 小时 `12:34`，超过 1 小时 `1:02:34`；数字染绿用 `rangeOfString:`（第二个用 `NSBackwardsSearch`，避免两个数字文本相同时落在一处）。
+
+**持久化与边界**
+
+| 项 | 做法 |
+|----|------|
+| 落盘位置 | `[NSUserDefaults standardUserDefaults]`（与 V1.5 修过的提示音偏好同源，不再用 suiteName——见 1.1）|
+| 写盘时机 | 累加满 30 次（约 30 秒）一次；轮次 +1 时；跨天清零时；`applicationWillTerminate` 退出前 |
+| 跨天 | `BusyDayKey` 存 `yyyy-MM-dd`，启动时与今天比对，不符即归零**并立即刷盘**（否则昨天的旧值会残留到第一次写盘，中途退出会丢最多 30 秒）|
+| 已知边界 | 灯没在跑的时段不计入（与「今日消耗」同源问题）。但 Codex 小灯是 launchd 常驻，开机即在跑，覆盖率接近 100% |
+
+**验证（真跑，非纸面）**：`clang -fobjc-arc -framework Cocoa -framework Carbon` 编译 **0 error**；
+debug 版用哨兵文件 `/tmp/fake_busy` 模拟忙闲（不碰真实 session 数据），实测「忙 8 秒 → 停 → 再忙 6 秒」：
+本轮归零重计、今日累计 `0:09 → 0:16` **继续累加不清零**、轮次记到 **2 轮**、落盘 `TodayBusySecs=16.0 / TodayRuns=2`；
+注入昨天的 `7200 秒 / 9 轮` 后重启 → 显示回到 `今日 0:03`、落盘立即刷成今天的 `0 / 0`（跨天清零成立）。
 
 ### 1.5 V1.6：菜单加「关于 Codex小灯」区块（2026-11-01，交接单 JJ-2026-1101-01）
 
@@ -425,7 +462,7 @@ static const NSTimeInterval kBreathPeriod = 2.6;  // 呼吸一个明→暗→明
 // 版本号唯一来源：菜单「关于 Codex小灯 → 版本 x.y」从这里读。
 // 升版时改这一处即可；同时记得 Info.plist 的 CFBundleShortVersionString / CFBundleVersion 要跟上
 // （启动时在 CODEX_LIGHT_DEBUG=1 下会比对，不一致会打印告警）。
-static NSString * const kAppVersion = @"1.6";
+static NSString * const kAppVersion = @"1.7";
 static NSString * const kProjectURL = @"https://github.com/GGV-007/codex-lamp";
 static NSString * const kIssuesURL  = @"https://github.com/GGV-007/codex-lamp/issues";
 
@@ -461,6 +498,14 @@ static NSString * const kIssuesURL  = @"https://github.com/GGV-007/codex-lamp/is
 @property (copy) NSString *lastActionText;
 @property (copy) NSString *stateReason;
 @property (nonatomic) NSTimeInterval busySince;   // 本次变忙的时刻（V1.3：「已忙 X 分 X 秒」用）
+// ---- V1.7：忙碌时长三口径（本轮 / 今日累计 / 今日轮次）----
+// 背景：V1.3 只显示「本轮」时长，一闲置就归零，与「今天干了多少活」的直觉不符。
+// V1.7 补上跨轮累加的今日累计与轮次，落盘 standardUserDefaults，跨自然日自动清零。
+@property (nonatomic) double todayBusySecs;          // 今日累计忙碌秒数（跨轮累加）
+@property (nonatomic) NSInteger todayRuns;           // 今日完成的轮次（本轮 ≥3 秒才计数）
+@property (copy) NSString *busyDayKey;               // 今日累计归属的日期 yyyy-MM-dd
+@property (nonatomic) NSTimeInterval lastAccrualAt;  // 上次累加时刻（0=本轮尚未开始累加）
+@property (nonatomic) NSUInteger accrualTicks;       // 累加次数，用于节流写盘（每 30 秒一次）
 // ---- 干完活提示音 ----
 @property (nonatomic) BOOL soundEnabled;
 @property (copy) NSString *soundPath;
@@ -469,6 +514,10 @@ static NSString * const kIssuesURL  = @"https://github.com/GGV-007/codex-lamp/is
 @property (strong) NSMenuItem *soundToggleItem;
 @property (strong) NSMutableArray<NSMenuItem *> *soundChoiceItems;
 - (void)loadSoundPrefs;
+// V1.7：忙碌时长三口径
+- (void)loadBusyStats;
+- (void)saveBusyStats;
+- (void)rollBusyDayIfNeeded;
 - (void)saveSoundPrefs;
 - (NSString *)defaultSoundPath;
 - (NSArray<NSDictionary<NSString *, NSString *> *> *)availableSounds;
@@ -505,6 +554,7 @@ static NSString * const kIssuesURL  = @"https://github.com/GGV-007/codex-lamp/is
     [NSApp setActivationPolicy:NSApplicationActivationPolicyAccessory];
     self.blinkOn = YES;
     [self loadSoundPrefs];
+    [self loadBusyStats];   // V1.7：恢复今日累计忙碌时长与轮次（跨天自动归零）
 
     // V1.6（交接单 JJ-2026-1101-01）：版本常量与 Info.plist 对不上时告警，
     // 防止「改了源码忘了升 plist」或反过来——只在调试模式下打印，正常启动静默。
@@ -749,9 +799,28 @@ static NSString * const kIssuesURL  = @"https://github.com/GGV-007/codex-lamp/is
     if (!self.busy) {
         [self stopBlink];
         self.blinkOn = YES;
+        // V1.7：本轮结束且持续 ≥3 秒才计一轮（防状态抖动把轮次刷高）
+        if (wasBusy && self.busySince > 0 && (now - self.busySince) >= 3.0) {
+            self.todayRuns += 1;
+            [self saveBusyStats];
+        }
         self.busySince = 0;
     }
     if (wasBusy && !self.busy) [self playCompletionSound];   // 绿 → 红：活干完了，叮一声
+
+    // V1.7：今日累计——忙着的每一秒把真实经过的时间累加进去（跨轮不清零，跨自然日归零）
+    [self rollBusyDayIfNeeded];
+    if (self.busy) {
+        if (self.lastAccrualAt > 0 && now > self.lastAccrualAt) {
+            double dt = now - self.lastAccrualAt;
+            if (dt > 0 && dt < 120.0) self.todayBusySecs += dt;   // 间隔 >2 分钟＝休眠/卡顿，不补
+        }
+        self.lastAccrualAt = now;
+        self.accrualTicks += 1;
+        if (self.accrualTicks % 30 == 0) [self saveBusyStats];   // 每约 30 秒落一次盘
+    } else {
+        self.lastAccrualAt = 0;
+    }
     [self updateBreathTimer];   // 0% → 黄色呼吸开；回到有量 → 关（挂巡检，比只挂拉取那一刻稳）
     [self renderStatusTitle];
 
@@ -1397,26 +1466,100 @@ static NSString * const kIssuesURL  = @"https://github.com/GGV-007/codex-lamp/is
 
 // 状态行：V1.3（2026-10-27 刚哥定）——参考 WB小灯 面板：忙时「工作中 · 已忙 X 分 X 秒」
 // （文字白、只有时长的两个数字绿），闲时「闲置中」；原「最近活动：…前」整行废弃（前后台都去掉）
-- (void)renderDetailLine {
-    if (!self.busy) {
-        self.detailField.attributedStringValue = [[NSAttributedString alloc]
-            initWithString:@"闲置中"
-                attributes:@{NSFontAttributeName: self.detailField.font,
-                             NSForegroundColorAttributeName: [NSColor secondaryLabelColor]}];
-        return;
+// ================= V1.7 忙碌时长三口径 =================
+
+static NSString *BusyDayKeyNow(void) {
+    static NSDateFormatter *df;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        df = [[NSDateFormatter alloc] init];
+        df.locale = [NSLocale localeWithLocaleIdentifier:@"en_US_POSIX"];
+        df.dateFormat = @"yyyy-MM-dd";
+    });
+    return [df stringFromDate:[NSDate date]];
+}
+
+- (void)loadBusyStats {
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    NSString *saved = [d stringForKey:@"BusyDayKey"];
+    NSString *today = BusyDayKeyNow();
+    if (saved.length && [saved isEqualToString:today]) {
+        self.todayBusySecs = [d doubleForKey:@"TodayBusySecs"];
+        self.todayRuns     = [d integerForKey:@"TodayRuns"];
+    } else {
+        self.todayBusySecs = 0.0;      // 换天或首次启动：今日从零开始
+        self.todayRuns     = 0;
     }
-    NSTimeInterval secs = [NSDate date].timeIntervalSince1970 - self.busySince;
-    long mins = (long)floor(secs / 60), ss = (long)fmod(secs, 60);
-    NSString *pre = @"工作中 · 已忙 ", *m1 = @" 分 ", *m2 = @" 秒";
+    self.busyDayKey = today;
+    if (!(saved.length && [saved isEqualToString:today])) [self saveBusyStats];   // 立刻把日期刷成今天，别留昨天的旧值
+}
+
+- (void)saveBusyStats {
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    [d setObject:(self.busyDayKey ?: BusyDayKeyNow()) forKey:@"BusyDayKey"];
+    [d setDouble:self.todayBusySecs forKey:@"TodayBusySecs"];
+    [d setInteger:self.todayRuns forKey:@"TodayRuns"];
+    [d synchronize];
+}
+
+- (void)applicationWillTerminate:(NSNotification *)note {
+    [self saveBusyStats];   // V1.7：退出前落盘，别丢掉最后不足 30 秒的部分
+}
+
+- (void)rollBusyDayIfNeeded {
+    NSString *today = BusyDayKeyNow();
+    if (self.busyDayKey.length && [today isEqualToString:self.busyDayKey]) return;
+    self.busyDayKey = today;
+    self.todayBusySecs = 0.0;
+    self.todayRuns = 0;
+    self.lastAccrualAt = 0;
+    [self saveBusyStats];
+}
+
+// V1.7：把秒数写成 12:34（不足 1 小时）或 1:02:34（超过 1 小时）
+static NSString *fmtDur(double secs) {
+    if (secs < 0) secs = 0;
+    long h = (long)floor(secs / 3600.0);
+    long m = (long)floor(fmod(secs, 3600.0) / 60.0);
+    long s = (long)floor(fmod(secs, 60.0));
+    if (h > 0) return [NSString stringWithFormat:@"%ld:%02ld:%02ld", h, m, s];
+    return [NSString stringWithFormat:@"%ld:%02ld", m, s];
+}
+
+// 状态行 V1.7：三口径——本轮 / 今日累计 / 今日轮次
+//   忙： 工作中 · 本轮 0:21 · 今日 2:13
+//   闲： 闲置中 · 今日 2:13 · 今天 8 轮
+// （文字沿用 V1.3 的灰色，只有数字染绿）
+- (void)renderDetailLine {
+    NSFont *f = self.detailField.font ?: [NSFont systemFontOfSize:13];
+    NSColor *dim = [NSColor secondaryLabelColor];
+    NSColor *green = [NSColor systemGreenColor];
+
+    NSString *today = fmtDur(self.todayBusySecs);
+    NSString *txt;
+    NSArray<NSString *> *nums;
+
+    if (!self.busy) {
+        NSString *runs = [NSString stringWithFormat:@"%ld", (long)self.todayRuns];
+        txt = [NSString stringWithFormat:@"闲置中 · 今日 %@ · 今天 %@ 轮", today, runs];
+        nums = @[today, runs];
+    } else {
+        NSTimeInterval secs = [NSDate date].timeIntervalSince1970 - self.busySince;
+        NSString *cur = fmtDur(secs);
+        txt = [NSString stringWithFormat:@"工作中 · 本轮 %@ · 今日 %@", cur, today];
+        nums = @[cur, today];
+    }
+
     NSMutableAttributedString *a = [[NSMutableAttributedString alloc]
-        initWithString:[NSString stringWithFormat:@"%@%ld%@%ld%@", pre, mins, m1, ss, m2]
-            attributes:@{NSFontAttributeName: self.detailField.font,
-                         NSForegroundColorAttributeName: [NSColor secondaryLabelColor]}];
-    NSString *ms = [NSString stringWithFormat:@"%ld", mins], *xs = [NSString stringWithFormat:@"%ld", ss];
-    [a addAttribute:NSForegroundColorAttributeName value:[NSColor systemGreenColor]
-              range:NSMakeRange(pre.length, ms.length)];
-    [a addAttribute:NSForegroundColorAttributeName value:[NSColor systemGreenColor]
-              range:NSMakeRange(pre.length + ms.length + m1.length, xs.length)];
+        initWithString:txt attributes:@{NSFontAttributeName: f,
+                                        NSForegroundColorAttributeName: dim}];
+    // 逐个数字染绿：第二个用反向查找，避免与第一个数字文本相同时落到同一处
+    NSRange r = [txt rangeOfString:nums[0]];
+    if (r.location != NSNotFound)
+        [a addAttribute:NSForegroundColorAttributeName value:green range:r];
+    r = [txt rangeOfString:nums[1] options:NSBackwardsSearch];
+    if (r.location != NSNotFound)
+        [a addAttribute:NSForegroundColorAttributeName value:green range:r];
     self.detailField.attributedStringValue = a;
 }
 
